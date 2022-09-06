@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
+from django.core.cache import cache
 
 from posts.models import Group, Post
 
@@ -28,6 +29,9 @@ class PostURLTests(TestCase):
             slug='test-slug',
             description='Тестовое описание'
         )
+
+    def setUp(self):
+        cache.clear()
 
     def test_unexisting_page(self):
         """Тестирование поведения несуществующей страницы"""

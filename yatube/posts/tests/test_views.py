@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.conf import settings
+from django.core.cache import cache
 
 from posts.models import Group, Post
 
@@ -68,13 +69,16 @@ class PostPagesTests(TestCase):
                         kwargs={'username': 'author'}),
             'POST_DETAIL':
                 reverse('posts:post_detail',
-                        kwargs={'post_id': PostPagesTests.post.pk}),
+                        kwargs={'post_id': cls.post.pk}),
             'POST_EDIT':
                 reverse('posts:post_edit',
-                        kwargs={'post_id': PostPagesTests.post.pk}),
+                        kwargs={'post_id': cls.post.pk}),
             'POST_CREATE':
                 reverse('posts:post_create')
         }
+
+    def setUp(self):
+        cache.clear()
 
     @classmethod
     def tearDownClass(cls):
@@ -83,7 +87,7 @@ class PostPagesTests(TestCase):
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
-        URLS = PostPagesTests.URLS_DIC
+        URLS = self.URLS_DIC
         templates_pages_names = {
             URLS['INDEX']: 'posts/index.html',
             URLS['GROUP_LIST']: 'posts/group_list.html',
@@ -99,9 +103,9 @@ class PostPagesTests(TestCase):
 
     def test_displaying_post_on_different_pages(self):
         """Тестовый пост отображается на нужных страницах"""
-        URLS = [PostPagesTests.URLS_DIC['INDEX'],
-                PostPagesTests.URLS_DIC['GROUP_LIST'],
-                PostPagesTests.URLS_DIC['PROFILE']]
+        URLS = [self.URLS_DIC['INDEX'],
+                self.URLS_DIC['GROUP_LIST'],
+                self.URLS_DIC['PROFILE']]
         for url in URLS:
             response = self.authorized_client.get(url)
             response_without_post = self.authorized_client.get(
@@ -110,15 +114,15 @@ class PostPagesTests(TestCase):
                     kwargs={'slug': 'slug_group_without_post'}
                 )
             )
-            self.assertContains(response, PostPagesTests.post)
-            self.assertNotContains(response_without_post, PostPagesTests.post)
+            self.assertContains(response, self.post)
+            self.assertNotContains(response_without_post, self.post)
 
     def test_index_group_list_profile_show_correct_context(self):
         """Шаблоны index, group_list, profile
         сформированы с правильным контекстом."""
-        USED_URLS = [PostPagesTests.URLS_DIC['INDEX'],
-                     PostPagesTests.URLS_DIC['GROUP_LIST'],
-                     PostPagesTests.URLS_DIC['PROFILE']]
+        USED_URLS = [self.URLS_DIC['INDEX'],
+                     self.URLS_DIC['GROUP_LIST'],
+                     self.URLS_DIC['PROFILE']]
         for url in USED_URLS:
             response = self.authorized_client.get(url)
             first_object = response.context['page_obj'][0]
@@ -132,7 +136,7 @@ class PostPagesTests(TestCase):
     def test_post_detail_pages_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = (self.authorized_client.get(
-            PostPagesTests.URLS_DIC['POST_DETAIL']
+            self.URLS_DIC['POST_DETAIL']
         ))
         self.assertEqual(
             response.context.get('post').text,
@@ -154,8 +158,8 @@ class PostPagesTests(TestCase):
     def test_post_edit_and_create_page_show_correct_context(self):
         """Шаблоны post_edit и post_create
         сформированы с правильным контекстом."""
-        USED_URLS = [PostPagesTests.URLS_DIC['POST_EDIT'],
-                     PostPagesTests.URLS_DIC['POST_CREATE']]
+        USED_URLS = [self.URLS_DIC['POST_EDIT'],
+                     self.URLS_DIC['POST_CREATE']]
         for url in USED_URLS:
             response = self.authorized_client.get(url)
             form_fields = {
@@ -174,7 +178,7 @@ class PaginatorViewsTest(TestCase):
         super().setUpClass()
         cls.author = User.objects.create_user(username='author')
         cls.author_client = Client()
-        cls.author_client.force_login(PaginatorViewsTest.author)
+        cls.author_client.force_login(cls.author)
         cls.group = Group.objects.create(
             title='Тестовое название',
             slug='slug',
@@ -198,22 +202,54 @@ class PaginatorViewsTest(TestCase):
                         kwargs={'username': 'author'})
         }
 
+    def setUp(self):
+        cache.clear()
+
     def test_first_page_contains_ten_records(self):
         """Первая страница index, group_list, profile
         содержит 10 постов"""
-        URLS = list(PaginatorViewsTest.URLS_DIC.keys())
+        URLS = list(self.URLS_DIC.keys())
         for url in URLS:
             response = self.client.get(
-                PaginatorViewsTest.URLS_DIC[url]
+                self.URLS_DIC[url]
             )
             self.assertEqual(len(response.context['page_obj']), 10)
 
     def test_second_page_contains_three_records(self):
         """Первая страница index, group_list, profile
         содержит 3 поста"""
-        URLS = list(PaginatorViewsTest.URLS_DIC.keys())
+        URLS = list(self.URLS_DIC.keys())
         for url in URLS:
             response = self.client.get(
-                PaginatorViewsTest.URLS_DIC[url] + '?page=2'
+                self.URLS_DIC[url] + '?page=2'
             )
             self.assertEqual(len(response.context['page_obj']), 3)
+
+
+class CacheViewsTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.authorized_user = User.objects.create_user(username='user')
+        cls.authorized_user_client = Client()
+        cls.authorized_user_client.force_login(cls.authorized_user)
+
+    def test_index_cache(self):
+        """Проверка кеширования главной страницы"""
+        post = Post.objects.create(
+            text='Тестовый текст',
+            author=self.authorized_user
+        )
+        response_before_clear = self.authorized_user_client.get(
+            reverse('posts:index')
+        )
+        post.delete()
+        self.assertIn(post.text,
+                      response_before_clear.content.decode('utf-8'))
+        cache.clear()
+        response_after_clear = self.authorized_user_client.get(
+            reverse('posts:index')
+        )
+        self.assertNotIn(post.text,
+                         response_after_clear.content.decode('utf-8'))
+        self.assertNotEqual(response_before_clear, response_after_clear)
