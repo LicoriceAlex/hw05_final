@@ -23,7 +23,7 @@ class PostPagesTests(TestCase):
         super().setUpClass()
         cls.author = User.objects.create_user(username='author')
         cls.author_client = Client()
-        cls.author_client.force_login(PostPagesTests.author)
+        cls.author_client.force_login(cls.author)
         cls.user = User.objects.create_user(username='Gribobas')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)

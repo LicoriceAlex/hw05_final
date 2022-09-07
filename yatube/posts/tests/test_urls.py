@@ -120,3 +120,10 @@ class PostURLTests(TestCase):
             with self.subTest(address=address):
                 response = self.author_client.get(address)
                 self.assertTemplateUsed(response, template)
+
+    def test_custom_page_404(self):
+        """Страница 404 использует кастомный шаблон"""
+        url = '/unexisting_page/'
+        template = 'core/404.html'
+        response = self.guest_client.get(url)
+        self.assertTemplateUsed(response, template)
