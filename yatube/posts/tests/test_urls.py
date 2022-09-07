@@ -49,7 +49,7 @@ class PostURLTests(TestCase):
         urls_list = [
             '/', '/group/test-slug/',
             '/profile/author/',
-            f'/posts/{PostURLTests.post.pk}/',
+            f'/posts/{self.post.pk}/',
         ]
         for url in urls_list:
             with self.subTest(url=url):

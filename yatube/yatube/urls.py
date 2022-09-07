@@ -4,6 +4,8 @@ from django.urls import include, path
 from django.conf import settings
 
 handler404 = 'core.views.page_not_found'
+handler403 = 'core.views.forbidden_403'
+handler500 = 'core.views.internal_server_error'
 
 urlpatterns = [
     path('', include('posts.urls', namespace='posts')),
