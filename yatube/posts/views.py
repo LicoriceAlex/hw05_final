@@ -5,7 +5,7 @@ from django.views.decorators.cache import cache_page
 
 
 from .forms import PostForm, CommentForm
-from .models import Group, Post, User
+from .models import Follow, Group, Post, User
 
 POSTS_PER_PAGE = 10
 
@@ -41,14 +41,17 @@ def group_posts(request, slug):
 
 
 def profile(request, username):
-    username = get_object_or_404(User, username=username)
-    post_list = username.posts.all()
+    author = get_object_or_404(User, username=username)
+    post_list = author.posts.all()
     count_post = len(post_list)
     page_obj = get_page(request, post_list)
+    following = Follow.objects.filter(
+        user=request.user, author=author).exists()
     context = {
         'page_obj': page_obj,
         'username': username,
-        'count_post': count_post
+        'count_post': count_post,
+        'following': following,
     }
     return render(request, 'posts/profile.html', context)
 
@@ -120,3 +123,33 @@ def add_comment(request, post_id):
         comment.post = post
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
+
+
+@login_required
+def follow_index(request):
+    title = 'Посты авторов, на которых вы подписаны'
+    post_list = Post.objects.filter(author__following__user=request.user)
+    page_obj = get_page(request, post_list)
+    context = {
+        'page_obj': page_obj,
+        'title': title,
+    }
+    return render(request, 'posts/follow.html', context)
+
+
+@login_required
+def profile_follow(request, username):
+    author = get_object_or_404(User, username=username)
+    following = Follow.objects.filter(
+        user=request.user, author=author).exists()
+    if request.user != author and not following:
+        Follow.objects.create(user=request.user, author=author)
+    return redirect('posts:profile', username=username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    author = get_object_or_404(User, username=username)
+    if request.user != author:
+        Follow.objects.filter(user=request.user, author=author).delete()
+    return redirect('posts:profile', username=username)
