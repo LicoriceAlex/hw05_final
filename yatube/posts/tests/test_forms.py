@@ -1,12 +1,12 @@
-from http import HTTPStatus
 import shutil
 import tempfile
+from http import HTTPStatus
 
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from django.conf import settings
 
 from posts.models import Group, Post
 
@@ -115,8 +115,8 @@ class PostCreateFormTests(TestCase):
     def test_post_edit(self):
         """При отправке валидной формы со страницы редактирования поста
         происходит изменение поста в базе данных."""
-        post_id = PostCreateFormTests.post.pk
-        group_id = PostCreateFormTests.second_group.pk
+        post_id = self.post.pk
+        group_id = self.second_group.pk
         post_edit_url = reverse('posts:post_edit',
                                 kwargs={'post_id': post_id})
         posts_count = Post.objects.count()

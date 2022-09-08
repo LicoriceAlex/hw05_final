@@ -1,8 +1,8 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
 from django.core.cache import cache
+from django.test import Client, TestCase
 
 from posts.models import Group, Post
 
@@ -19,7 +19,7 @@ class PostURLTests(TestCase):
         cls.user = User.objects.create_user(username='HasNoName')
         cls.author = User.objects.create_user(username='author')
         cls.authorized_client.force_login(cls.user)
-        cls.author_client.force_login(PostURLTests.author)
+        cls.author_client.force_login(cls.author)
         cls.post = Post.objects.create(
             text='Тестовый текст',
             author=cls.author,
@@ -63,7 +63,7 @@ class PostURLTests(TestCase):
 
     def test_urls_accessible_to_authorized_user(self):
         """Тестирование страниц, доступных авторизованным пользователям"""
-        urls_list = ['/create/']
+        urls_list = ['/create/', '/follow/']
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.authorized_client.get(url)
@@ -76,7 +76,7 @@ class PostURLTests(TestCase):
 
     def test_urls_accessible_to_author(self):
         """Тестирование страниц, доступных автору поста"""
-        urls_list = [f'/posts/{PostURLTests.post.pk}/edit/']
+        urls_list = [f'/posts/{self.post.pk}/edit/']
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.author_client.get(url)
@@ -89,7 +89,7 @@ class PostURLTests(TestCase):
 
     def test_redirect_anonymous(self):
         """Тестирование редиректов неавторизованных пользователей"""
-        urls_list = [f'/posts/{PostURLTests.post.pk}/edit/', '/create/']
+        urls_list = [f'/posts/{self.post.pk}/edit/', '/create/', '/follow/']
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.guest_client.get(url)
@@ -109,12 +109,14 @@ class PostURLTests(TestCase):
                 'posts/group_list.html',
             '/profile/author/':
                 'posts/profile.html',
-            f'/posts/{PostURLTests.post.pk}/':
+            f'/posts/{self.post.pk}/':
                 'posts/post_detail.html',
-            f'/posts/{PostURLTests.post.pk}/edit/':
+            f'/posts/{self.post.pk}/edit/':
                 'posts/create_post.html',
             '/create/':
                 'posts/create_post.html',
+            '/follow/':
+                'posts/follow.html'
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):

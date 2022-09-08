@@ -2,14 +2,14 @@ import shutil
 import tempfile
 
 from django import forms
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from django.conf import settings
-from django.core.cache import cache
 
-from posts.models import Group, Post
+from posts.models import Follow, Group, Post
 
 User = get_user_model()
 
@@ -253,3 +253,81 @@ class CacheViewsTests(TestCase):
         self.assertNotIn(post.text,
                          response_after_clear.content.decode('utf-8'))
         self.assertNotEqual(response_before_clear, response_after_clear)
+
+
+class FollowServiceTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.author = User.objects.create_user(username='author')
+        cls.author_client = Client()
+        cls.author_client.force_login(cls.author)
+
+        cls.follower = User.objects.create_user(username='follower')
+        cls.follower_client = Client()
+        cls.follower_client.force_login(cls.follower)
+
+        cls.user = User.objects.create_user(username='user')
+        cls.user_client = Client()
+        cls.user_client.force_login(cls.user)
+
+        cls.guest = User.objects.create_user(username='guest')
+        cls.guest_client = Client()
+
+    def test_follow_unfollow_sistem(self):
+        """Авторизованный пользователь может подписываться на других
+        пользователей и удалять их из подписок.
+        Неавторизованный пользователь не может подписаться"""
+        username = self.author.username
+
+        def following_existion(user, author):
+            following = Follow.objects.filter(
+                user=user, author=author).exists()
+            return following
+
+        redirect_url = reverse('posts:profile',
+                               kwargs={'username': username})
+        guest_redirect_url = f'/auth/login/?next=/profile/{username}/follow/'
+
+        follow_response = self.follower_client.post(
+            reverse('posts:profile_follow',
+                    kwargs={'username': username})
+        )
+        self.assertTrue(following_existion(self.follower, self.author))
+        self.assertRedirects(follow_response, redirect_url)
+
+        unfollow_response = self.follower_client.post(
+            reverse('posts:profile_unfollow',
+                    kwargs={'username': username})
+        )
+        self.assertFalse(following_existion(self.follower, self.author))
+        self.assertRedirects(unfollow_response, redirect_url)
+
+        guest_follow_response = self.guest_client.post(
+            reverse('posts:profile_follow',
+                    kwargs={'username': username})
+        )
+        self.assertFalse(following_existion(self.guest, self.author))
+        self.assertRedirects(guest_follow_response, guest_redirect_url)
+
+    def test_follow_view_page(self):
+        """Новая запись пользователя появляется в ленте тех,
+        кто на него подписан и не появляется в ленте тех, кто не подписан."""
+        self.follower_client.post(
+            reverse('posts:profile_follow',
+                    kwargs={'username': self.author.username})
+        )
+        post = Post.objects.create(
+            text='Тестовый текст',
+            author=self.author
+        )
+
+        follower_index_response = self.follower_client.get(
+            reverse('posts:follow_index')
+        )
+        self.assertContains(follower_index_response, post)
+
+        not_follower_index_response = self.user_client.get(
+            reverse('posts:follow_index')
+        )
+        self.assertNotContains(not_follower_index_response, post)
