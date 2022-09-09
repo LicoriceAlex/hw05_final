@@ -3,6 +3,7 @@ from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from posts.models import Group, Post
 
@@ -46,11 +47,15 @@ class PostURLTests(TestCase):
 
     def test_urls_accessible_to_any_user(self):
         """Тестирование страниц, доступных всем пользователям"""
-        urls_list = [
-            '/', '/group/test-slug/',
-            '/profile/author/',
-            f'/posts/{self.post.pk}/',
-        ]
+        urls_list = (
+            reverse('posts:index'),
+            reverse('posts:group_list',
+                    kwargs={'slug': self.group.slug}),
+            reverse('posts:profile',
+                    kwargs={'username': self.author.username}),
+            reverse('posts:post_detail',
+                    kwargs={'post_id': self.post.pk}),
+        )
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.guest_client.get(url)
@@ -63,7 +68,8 @@ class PostURLTests(TestCase):
 
     def test_urls_accessible_to_authorized_user(self):
         """Тестирование страниц, доступных авторизованным пользователям"""
-        urls_list = ['/create/', '/follow/']
+        urls_list = (reverse('posts:post_create'),
+                     reverse('posts:follow_index'))
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.authorized_client.get(url)
@@ -76,7 +82,8 @@ class PostURLTests(TestCase):
 
     def test_urls_accessible_to_author(self):
         """Тестирование страниц, доступных автору поста"""
-        urls_list = [f'/posts/{self.post.pk}/edit/']
+        urls_list = [reverse('posts:post_edit',
+                             kwargs={'post_id': self.post.pk})]
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.author_client.get(url)
@@ -89,7 +96,10 @@ class PostURLTests(TestCase):
 
     def test_redirect_anonymous(self):
         """Тестирование редиректов неавторизованных пользователей"""
-        urls_list = [f'/posts/{self.post.pk}/edit/', '/create/', '/follow/']
+        urls_list = (reverse('posts:post_edit',
+                     kwargs={'post_id': self.post.pk}),
+                     reverse('posts:post_create'),
+                     reverse('posts:follow_index'))
         for url in urls_list:
             with self.subTest(url=url):
                 response = self.guest_client.get(url)
@@ -103,19 +113,23 @@ class PostURLTests(TestCase):
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_url_names = {
-            '/':
+            reverse('posts:index'):
                 'posts/index.html',
-            '/group/test-slug/':
+            reverse('posts:group_list',
+                    kwargs={'slug': self.group.slug}):
                 'posts/group_list.html',
-            '/profile/author/':
+            reverse('posts:profile',
+                    kwargs={'username': self.author.username}):
                 'posts/profile.html',
-            f'/posts/{self.post.pk}/':
+            reverse('posts:post_detail',
+                    kwargs={'post_id': self.post.pk}):
                 'posts/post_detail.html',
-            f'/posts/{self.post.pk}/edit/':
+            reverse('posts:post_edit',
+                    kwargs={'post_id': self.post.pk}):
                 'posts/create_post.html',
-            '/create/':
+            reverse('posts:post_create'):
                 'posts/create_post.html',
-            '/follow/':
+            reverse('posts:follow_index'):
                 'posts/follow.html'
         }
         for address, template in templates_url_names.items():
