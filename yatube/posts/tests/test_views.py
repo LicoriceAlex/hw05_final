@@ -285,14 +285,14 @@ class FollowServiceTests(TestCase):
                 user=user, author=author).exists()
             return following
 
+        login_url = reverse('users:login')
+        follow_url = reverse('posts:profile_follow',
+                             kwargs={'username': username})
         redirect_url = reverse('posts:profile',
                                kwargs={'username': username})
-        guest_redirect_url = f'/auth/login/?next=/profile/{username}/follow/'
+        guest_redirect_url = f'{login_url}?next={follow_url}'
 
-        follow_response = self.follower_client.post(
-            reverse('posts:profile_follow',
-                    kwargs={'username': username})
-        )
+        follow_response = self.follower_client.post(follow_url)
         self.assertTrue(following_existion(self.follower, self.author))
         self.assertRedirects(follow_response, redirect_url)
 

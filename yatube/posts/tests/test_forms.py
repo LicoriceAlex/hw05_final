@@ -12,6 +12,7 @@ from django.urls import reverse
 from posts.models import Group, Post
 
 User = get_user_model()
+login_url = reverse('users:login')
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
@@ -168,7 +169,7 @@ class PostCreateFormTests(TestCase):
     def test_guest_user_create_post(self):
         """Неавторизованный пользователь не может создавать посты"""
         post_create_url = reverse('posts:post_create')
-        redirect_url = '/auth/login/?next=/create/'
+        redirect_url = f'{login_url}?next={post_create_url}'
         posts_count = Post.objects.count()
         form_data_create = {
             'text': 'Tестовый текст',
@@ -189,7 +190,7 @@ class PostCreateFormTests(TestCase):
         post_id = self.post.pk
         post_edit_url = reverse('posts:post_edit',
                                 kwargs={'post_id': post_id})
-        redirect_url = f'/auth/login/?next=/posts/{post_id}/edit/'
+        redirect_url = f'{login_url}?next={post_edit_url}'
         posts_count = Post.objects.count()
         form_data_edit = {
             'text': 'Измененный тестовый текст',
@@ -211,7 +212,7 @@ class PostCreateFormTests(TestCase):
         post_id = self.post.pk
         add_comment_url = reverse('posts:add_comment',
                                   kwargs={'post_id': post_id})
-        guest_redirect_url = f'/auth/login/?next=/posts/{post_id}/comment/'
+        guest_redirect_url = f'{login_url}?next={add_comment_url}'
         comments_count = self.post.comments.count()
         form_data = {
             'text': 'Тестовый комментарий',
