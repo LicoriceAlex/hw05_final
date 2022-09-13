@@ -82,6 +82,9 @@ class Comment(models.Model):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
 
+    def __str__(self):
+        return f'Под постом {self.post} добавлен комментарий'
+
 
 class Follow(models.Model):
     user = models.ForeignKey(
@@ -100,7 +103,7 @@ class Follow(models.Model):
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-        unique_together = ['user', 'author']
+        unique_together = ('user', 'author')
 
     def __str__(self):
         return f'{self.user.username} подписался на {self.author.username}'
