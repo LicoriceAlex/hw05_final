@@ -1,10 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from ..constants import NUM_OF_CHAR
 from ..models import Group, Post
 
 User = get_user_model()
-NUM_OF_CHAR = 15
 
 
 class PostModelTest(TestCase):
