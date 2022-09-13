@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
+from .constants import NUM_OF_CHAR
+
 User = get_user_model()
 
 
@@ -50,7 +52,6 @@ class Post(models.Model):
         verbose_name_plural = 'Посты'
 
     def __str__(self) -> str:
-        NUM_OF_CHAR = 15
         return self.text[:NUM_OF_CHAR]
 
 
