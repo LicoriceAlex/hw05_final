@@ -36,5 +36,7 @@ python3 manage.py migrate
 ```
 python3 manage.py runserver
 ```
+### Стек технологий
+Python, Django framework, HTML, CSS, Bootstrap 
 ### Авторы
  Саша Савин
