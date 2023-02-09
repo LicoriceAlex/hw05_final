@@ -10,8 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
+from dotenv import load_dotenv
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 import os
 
+load_dotenv()
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,9 +27,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'dnh^3r_l^m*%7mk_-cvctpjwm2xu%6z-xk6g*b34muw$zc6x^z'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['158.160.25.92', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['158.160.25.92', '127.0.0.1', 'localhost', 'alexyatubeproject.ddns.net']
 
 # Application definition
 
@@ -144,3 +148,22 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
+
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('POSTGRES_USER'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT')
+    }
+} 
+
+
+sentry_sdk.init(
+    dsn="https://851c47cda38d4a568782b0834710fabc@o4504651133550592.ingest.sentry.io/4504651141545984", 
+    integrations=[DjangoIntegration()],
+) 
